@@ -288,5 +288,137 @@ ggplot(pca_df, aes(PC1, PC2, color = PCA_group)) +
 
 
 
+# === Fig.1E ===
 
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+  library(ggsignif)
+  library(patchwork)
+})
 
+figure1e_input <- "/Users/tf/e/ndmm/HM38/scRNA_harmony.HM38.annopre.rds"
+figure1e_annotation <- "/Users/tf/e/ndmm/HM38/annoMM.txt"
+figure1e_out <- paste0(
+  "/Users/tf/e/ndmm/ESR2/submit/Communications Biology/",
+  "Figure1_code/outputs"
+)
+
+# Optional: provide figure1e_meta explicitly to reuse the ORIGINAL object's
+# metadata. Do not substitute metadata from the re-clustered newer object.
+# This does not change or subset the scRNA_harmony object used by other panels.
+if (!exists("figure1e_meta", inherits = FALSE)) {
+  suppressPackageStartupMessages(library(Seurat))
+  figure1e_original <- readRDS(figure1e_input)
+  figure1e_meta <- figure1e_original@meta.data
+  rm(figure1e_original)
+  invisible(gc())
+}
+
+figure1e_required <- c("orig.ident", "group.a", "seurat_clusters")
+stopifnot(all(figure1e_required %in% names(figure1e_meta)))
+figure1e_mm <- figure1e_meta %>%
+  dplyr::select(dplyr::all_of(figure1e_required)) %>%
+  dplyr::mutate(dplyr::across(dplyr::everything(), ~ trimws(as.character(.x)))) %>%
+  dplyr::filter(group.a %in% c("OR", "SOR"))
+if (nrow(figure1e_mm) == 0L ||
+    anyNA(figure1e_mm) || any(figure1e_mm$orig.ident == "")) {
+  stop("Missing or invalid MM sample metadata.")
+}
+
+figure1e_map <- read.delim(
+  figure1e_annotation, colClasses = "character", check.names = FALSE
+)
+stopifnot(all(c("ClusterID", "celltype") %in% names(figure1e_map)))
+stopifnot(!anyDuplicated(figure1e_map$ClusterID))
+if (anyNA(figure1e_map$celltype) || any(figure1e_map$celltype == "")) {
+  stop("Missing cell-type labels in annoMM.txt.")
+}
+figure1e_mm$celltype <- figure1e_map$celltype[
+  match(figure1e_mm$seurat_clusters, figure1e_map$ClusterID)
+]
+if (anyNA(figure1e_mm$celltype)) stop("Unmapped original MM clusters.")
+
+figure1e_sample_info <- figure1e_mm %>% dplyr::distinct(orig.ident, group.a)
+if (anyDuplicated(figure1e_sample_info$orig.ident)) {
+  stop("A patient has more than one OR/SOR group assignment.")
+}
+figure1e_n <- table(factor(figure1e_sample_info$group.a,
+                           levels = c("OR", "SOR")))
+if (!identical(as.integer(figure1e_n), c(10L, 8L))) {
+  stop("The original Figure 1E requires 10 OR and 8 SOR patients.")
+}
+
+# Denominator: ALL retained cells in the same patient, including plasmablasts
+# and every other cell type. Filter the two target cell types only afterward.
+figure1e_targets <- c("Malignant plasma cells", "CD4+ T cells")
+figure1e_totals <- figure1e_mm %>% dplyr::count(orig.ident, name = "total_cells")
+figure1e_counts <- figure1e_mm %>%
+  dplyr::filter(celltype %in% figure1e_targets) %>%
+  dplyr::count(orig.ident, celltype, name = "n_cells")
+figure1e_data <- tidyr::expand_grid(
+  orig.ident = figure1e_sample_info$orig.ident,
+  celltype = figure1e_targets
+) %>%
+  dplyr::left_join(figure1e_counts, by = c("orig.ident", "celltype")) %>%
+  dplyr::mutate(n_cells = dplyr::coalesce(n_cells, 0L)) %>%
+  dplyr::left_join(figure1e_totals, by = "orig.ident") %>%
+  dplyr::left_join(figure1e_sample_info, by = "orig.ident") %>%
+  dplyr::mutate(
+    proportion = 100 * n_cells / total_cells,
+    group.a = factor(group.a, levels = c("OR", "SOR")),
+    celltype = factor(celltype, levels = figure1e_targets)
+  ) %>%
+  dplyr::arrange(celltype, group.a, orig.ident)
+
+# One observation per patient; two-sided, unpaired Welch t-tests.
+figure1e_stats <- dplyr::bind_rows(lapply(figure1e_targets, function(ct) {
+  z <- dplyr::filter(figure1e_data, celltype == ct)
+  test <- stats::t.test(proportion ~ group.a, data = z, var.equal = FALSE,
+                        alternative = "two.sided")
+  data.frame(
+    celltype = ct, n_OR = sum(z$group.a == "OR"),
+    n_SOR = sum(z$group.a == "SOR"),
+    mean_OR_percent = mean(z$proportion[z$group.a == "OR"]),
+    mean_SOR_percent = mean(z$proportion[z$group.a == "SOR"]),
+    t_statistic = unname(test$statistic), df = unname(test$parameter),
+    p_value = test$p.value,
+    p_label = formatC(test$p.value, format = "f", digits = 4),
+    method = test$method
+  )
+}))
+
+figure1e_plot <- function(ct) {
+  z <- dplyr::filter(figure1e_data, celltype == ct)
+  p_text <- figure1e_stats$p_label[figure1e_stats$celltype == ct]
+  y_range <- diff(range(z$proportion))
+  ggplot(z, aes(group.a, proportion, fill = group.a)) +
+    geom_boxplot(outlier.shape = NA, width = 0.75, linewidth = 0.5) +
+    geom_point(
+      position = position_jitter(width = 0.1, height = 0, seed = 20261013),
+      colour = "black", size = 1.5
+    ) +
+    scale_fill_manual(values = c("OR" = "#EF8A62", "SOR" = "#F7F7F7")) +
+    ggsignif::geom_signif(
+      comparisons = list(c("OR", "SOR")),
+      annotations = p_text,
+      y_position = max(z$proportion) + 0.05 * y_range,
+      margin_top = 0, tip_length = 0.03, textsize = 4, size = 0.65
+    ) +
+    scale_y_continuous(expand = expansion(mult = c(0.03, 0.1))) +
+    labs(title = ct, x = NULL, y = paste0("% ", ct, " in sample")) +
+    theme_classic(base_size = 12) +
+    theme(
+      plot.title = element_text(size = 13, face = "bold", hjust = 0.5),
+      axis.text = element_text(size = 10, colour = "black", face = "bold"),
+      axis.title.y = element_text(size = 10, face = "bold"),
+      axis.line = element_line(colour = "black", linewidth = 0.6),
+      legend.position = "none", plot.margin = margin(8, 8, 8, 8)
+    )
+}
+
+p1E_malignant <- figure1e_plot("Malignant plasma cells")
+p1E_CD4 <- figure1e_plot("CD4+ T cells")
+p1E <- p1E_malignant / p1E_CD4
+p1E
