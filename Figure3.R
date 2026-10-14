@@ -1,5 +1,5 @@
 
-Figure 3
+#Figure 3
 
 # ======================== 1. User-configurable parameters ========================
 figure3_analysis_file <- "/Users/tf/e/ndmm/HM38/scRNA_harmony_MM18_MM.dim50res0.5.anno.rds"
