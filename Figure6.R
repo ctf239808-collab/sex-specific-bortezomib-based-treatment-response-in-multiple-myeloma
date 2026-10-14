@@ -1,5 +1,4 @@
- Figure 6
-
+ #Figure 6
 # ======================== 1. Parameters / parameter ========================
 figure6_config <- list(
   female_file = "/Users/tf/e/ndmm/HM38/FMM.hdWGCNA/female.hdWGCNA_object.rds",
