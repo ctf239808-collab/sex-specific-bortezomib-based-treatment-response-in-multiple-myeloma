@@ -1,4 +1,4 @@
-Figure 7
+#Figure 7
 # ======================== 1. Editable parameters ========================
 figure7_project_root <- "/Users/tf/e/ndmm"
 figure7_b_metadata_file <- "/Users/tf/e/MMspactial/ESR2/analysis/scrna/cell_metadata_esr2.csv.gz"
