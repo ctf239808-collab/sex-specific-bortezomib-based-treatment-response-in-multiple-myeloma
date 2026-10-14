@@ -1,5 +1,5 @@
 
-Figure 5
+#Figure 5
 # ======================== 1. Parameters ========================
 figure5_input_file <- "/Users/tf/e/ndmm/HM38/scRNA_harmony_HM38.anno.rds"
 figure5_output_dir <- "/Users/tf/e/ndmm/ESR2/submit/Communications Biology/Figure5_code/outputs_E_reference_labels"
