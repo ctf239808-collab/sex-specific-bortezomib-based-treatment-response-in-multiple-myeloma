@@ -1,4 +1,4 @@
-Figure 4
+#Figure 4
 # ======================== 1. Parameters ========================
 # Dataset audit 2026-10-14: identical cells and ESR2 counts, but the 2026-05-16 UMAP
 # in MM18.MM.anno matches the historical H-J; the earlier 2026-04-21 UMAP does not.
