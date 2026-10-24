@@ -1,29 +1,5 @@
-#!/usr/bin/env Rscript
-# Figure5.new.R | Six CellChat panels after removing the former pathway panel E.
-# Run in RStudio: source("/Users/tf/e/ndmm/ESR2/submit/Communications Biology/Figure5.new.R")
-# Or use /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/bin/Rscript.
-# To load functions only: Sys.setenv(FIGURE5_RUN = "0"); source(...)
-#
-# Panel mapping from Figure5_rebuilt.pdf: A->A, B->B, C->C, D->D, F->E, G->F.
-# The former E, its reference image and its exploratory pathway method are removed.
-# This script is self-contained and does not source Figure.5.R or read old PDFs.
-# Existing network caches are the default input; no CellChat inference is run.
-# To rerun the full input pipeline, set figure5_use_cached_networks = FALSE.
-# Set figure5_rebuild_networks = TRUE only to force fresh CellChat inference.
-#
-# Scientific definitions are retained from Figure.5.R:
-# A/B use network counts; D uses weights and omits filterCommunication as before.
-# C retains the historical receiving-axis/bar definition (legacy mode).
-# E (formerly F) retains the documented reconstructed MPC/immune focus filter;
-# the original exact focus-filter source was not recovered.
-# F (formerly G) retains the historical within-OR/SOR comparisons and filters.
-# E/F use their original distinct absent-sex and zero-p-value conventions.
-# pval_min is WITHIN-NETWORK interaction support, not a between-sex test.
-# A-C/E pool all atlas donors by sex; D also splits by global-median ESR2;
-# F uses only OR/SOR cells. All sex comparisons remain descriptive.
-
 # ======================== 1. Parameters ========================
-figure5_project_dir <- "/Users/tf/e/ndmm/ESR2/submit/Communications Biology"
+figure5_project_dir <- "/Users/tf/e/ndmm/ESR2/submit/NC"
 figure5_input_file <- "/Users/tf/e/ndmm/HM38/scRNA_harmony_HM38.anno.rds"
 figure5_output_dir <- file.path(figure5_project_dir, "Figure5_code", "outputs_new")
 figure5_figure_stem <- file.path(figure5_project_dir, "Figure5.new")
