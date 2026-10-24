@@ -1,33 +1,4 @@
-# =============================================================================
-# Figure2.R
-# 根据 Figure.2.pdf 的 A-I 面板整理自 Figure2.new.R。
-# 此版优化 Figure 2 的整体排版；保留 figure21.* 参数名以兼容此前调用。
-#
-# 运行（本机已安装依赖的 R）：
-# /Library/Frameworks/R.framework/Resources/bin/Rscript '/Users/tf/e/ndmm/ESR2/submit/Communications Biology/Figure2.R'
-# 或在 RStudio 中 source() 本文件；结束后可直接查看 p2A ... p2I、p2_all。
-#
-# 可选设置，在 source() 前执行：
-# options(figure21.input = '/absolute/path/scRNA_harmony_HM38.anno.rds',
-#         figure21.output = '/absolute/path/output', figure21.dpi = 300,
-#         figure21.formats = c('pdf', 'png'))
-# 排版参数：figure21.width=13.2、figure21.height=13.8、figure21.font_size=11.5。
-# 组合图使用三行网格、A/B 共用色条、独立字母边距和对齐的底部绘图区。
-#
-# 数据与分析定义：
-# - 所有表达来自 RNA/data（log-normalized），保留 ESR2 == 0 的细胞。
-# - D：各细胞类型内，按已有性别/疾病组平均表达计算 Z-score。
-# - E/F/G：细胞级、非配对、双侧 Welch t 检验（不假定两组方差相等）。
-# - H/I：患者级手工评分，OR=1、SOR=0，性别内标准化，ROC direction='auto'。
-#   mono_n 是计数；CD8_cyto 是全对象四基因 AddModuleScore 后的患者 CD8 均值。
-# - E/F/G 用于重现原图的探索性细胞级比较，并非独立患者重复检验。
-# - H/I 为同队列探索性 ROC，并非 LASSO、交叉验证或独立验证结果。
-# 不根据参考图修改数据、P 值或 AUC；参考标记仅用于导出的核对表。
-# 本机实测：H/I 六个 AUC 均匹配参考图（两位小数）。
-# E 按要求改用 Welch t 检验；星号由实际 P 值生成，保留与参考图的核对。
-# =============================================================================
 
-# 01. 参数、依赖与公共函数 ------------------------------------------------------
 figure21_cfg <- list(
   input = getOption('figure21.input',
                     '/Users/tf/e/ndmm/HM38/scRNA_harmony_HM38.anno.rds'),
@@ -118,7 +89,7 @@ figure21_save <- function(plot, name, width, height) {
   }
 }
 
-# 02. 只读取一次 Seurat 对象，统一表达来源与细胞顺序 ----------------------------
+
 if (!file.exists(figure21_cfg$input)) stop('Input file not found: ', figure21_cfg$input)
 message('Reading Seurat object: ', figure21_cfg$input)
 scRNA_harmony <- readRDS(figure21_cfg$input)
@@ -178,9 +149,7 @@ figure21_xlim <- range(figure21_umap[, 1]) + c(-1, 1)
 figure21_ylim <- range(figure21_umap[, 2]) + c(-1, 1)
 rm(figure21_rna, figure21_meta)
 
-# 03. A：全部细胞的 ESR2 UMAP；B：HD/MM 分组，共用坐标范围和色标 -----------------
 figure21_feature <- function(cells = NULL, title = 'ESR2') {
-  # FeaturePlot 自带颜色标尺；下面用原图的五色标尺统一替换。
   p <- Seurat::FeaturePlot(
     scRNA_harmony, features = figure21_cfg$gene, cells = cells,
     reduction = 'umap', slot = 'data', pt.size = 0.35, order = TRUE,
@@ -203,7 +172,6 @@ p2B_MM <- figure21_feature(figure21_cells$cell[figure21_cells$group == 'MM'], 'M
 p2B <- (p2B_HD + p2B_MM + plot_layout(ncol = 2, guides = 'collect')) &
   theme(legend.position = 'bottom')
 
-# 04. C：各细胞类型的 ESR2 分布，按 HD/MM 分组 ---------------------------------
 scRNA_harmony$anno <- factor(scRNA_harmony$anno, levels = figure21_celltypes)
 scRNA_harmony$group <- factor(scRNA_harmony$group, levels = figure21_groups)
 figure21_vln_args <- list(
@@ -224,7 +192,6 @@ p2C <- do.call(Seurat::VlnPlot, figure21_vln_args)[[1]] +
         legend.box = 'horizontal', legend.margin = margin(5, 0, 0, 0))
 rm(figure21_vln_args)
 
-# 05. D：表达 Z-score 热图 + ESR2 检出率点图 -----------------------------------
 figure21_conditions <- c('Female | HD', 'Male | HD', 'Female | MM', 'Male | MM')
 figure21_D_observed <- figure21_cells %>%
   group_by(anno, gender, group) %>%
@@ -237,8 +204,8 @@ figure21_D_data <- tidyr::expand_grid(anno = figure21_celltypes,
   left_join(figure21_D_observed, by = c('anno', 'condition')) %>%
   mutate(anno = factor(anno, levels = figure21_celltypes),
          condition = factor(condition, levels = figure21_conditions))
+                    
 p2D <- ggplot(figure21_D_data, aes(condition, anno)) +
-  # 未观察到细胞的组合留白；已观察到但组间无变异的行以灰色显示。
   geom_tile(data = filter(figure21_D_data, !is.na(n_cells)), aes(fill = mean_expr_z),
             colour = 'grey85', linewidth = 0.3) +
   geom_point(data = filter(figure21_D_data, !is.na(n_cells)), aes(size = detect_rate),
@@ -269,7 +236,7 @@ p2D <- ggplot(figure21_D_data, aes(condition, anno)) +
         legend.box.just = 'left', legend.justification = 'left',
         legend.key.width = grid::unit(10, 'pt'))
 
-# 06. E：四类重点细胞，HD/MM 内的女性与男性比较 --------------------------------
+                    
 figure21_key_cells <- c('CD4+ T cells', 'CD8+ T cells', 'Malignant plasma cells',
                         'NK cells')
 figure21_E_data <- figure21_cells %>% filter(anno %in% figure21_key_cells) %>%
@@ -280,8 +247,6 @@ figure21_E_stats <- figure21_E_data %>% group_by(group, anno, .drop = TRUE) %>%
   group_modify(function(.x, .y) {
     x <- .x$ESR2[.x$gender == 'Female']
     y <- .x$ESR2[.x$gender == 'Male']
-    # 按要求使用非配对、双侧 Welch t 检验，不假定两组方差相等。
-    # 任一组少于 2 个细胞，或两组均无变异时，不计算 P 值。
     p <- if (length(x) >= 2L && length(y) >= 2L &&
              (stats::var(x) > 0 || stats::var(y) > 0)) {
       stats::t.test(x, y, alternative = 'two.sided', paired = FALSE,
@@ -329,7 +294,7 @@ p2E <- ggplot(figure21_E_data, aes(gender, ESR2, fill = gender)) +
         axis.text.x = element_text(size = figure21_cfg$font_size - 2),
         panel.spacing.x = grid::unit(5, 'pt'), panel.spacing.y = grid::unit(10, 'pt'))
 
-# 07. F/G：MM 恶性浆细胞，OR/SOR 总体和按性别分层 ------------------------------
+
 figure21_mpc <- figure21_cells %>%
   filter(group == 'MM', anno == 'Malignant plasma cells') %>%
   mutate(group.a = factor(group.a, levels = c('OR', 'SOR')),
@@ -377,7 +342,7 @@ figure21_violin <- function(d, stats, facet = FALSE) {
   if (facet) {
     p <- p + facet_wrap(~gender, nrow = 1, drop = FALSE)
   } else {
-    # 单面板也使用 strip，使 F/G/H/I 标题共用同一行。
+   
     p <- p + facet_wrap(~'All MM', nrow = 1)
   }
   p
@@ -388,10 +353,7 @@ figure21_patients <- figure21_mpc %>%
   group_by(orig.ident, gender, group.a) %>%
   summarise(ESR2_mean = mean(ESR2), n_MPC = n(), .groups = 'drop')
 
-# 08. H/I：患者级探索性三评分 ROC；OR = 1，SOR = 0，沿用原脚本自动方向。
-# mono_n 是细胞计数；CD8_cyto 是完整对象 AddModuleScore 后的患者 CD8 均值。
-# 此处不拟合 LASSO、不进行交叉验证；所有 AUC 均由实际数据计算。
-# -----------------------------------------------------------------------------
+
 if (anyDuplicated(figure21_patients$orig.ident)) stop("ROC 患者编号重复。")
 if (any(!as.character(figure21_patients$gender) %in% c("Female", "Male")) ||
     any(!as.character(figure21_patients$group.a) %in% c("OR", "SOR"))) {
@@ -411,7 +373,6 @@ figure21_mono <- figure21_cells %>%
   filter(anno %in% figure21_cfg$mono_types) %>%
   count(orig.ident, name = "mono_n")
 
-# 基因池、分箱和对照抽样作用于全部细胞，之后才提取 CD8 T 细胞。
 figure21_scored <- Seurat::AddModuleScore(
   object = scRNA_harmony, features = list(figure21_cfg$cyto_genes),
   pool = rownames(scRNA_harmony[[figure21_cfg$assay]]),
@@ -435,7 +396,6 @@ figure21_cd8 <- figure21_cd8_cells %>%
   summarise(CD8_cyto = mean(module_score), n_CD8 = n(), .groups = "drop")
 rm(figure21_scored, figure21_scored_meta, figure21_cd8_cells)
 
-# 保留原始缺失排除逻辑：未捕获相应细胞的患者不补成零。
 figure21_roc_input <- figure21_patients %>%
   mutate(gender = as.character(gender), group.a = as.character(group.a)) %>%
   left_join(figure21_mono, by = "orig.ident") %>%
@@ -486,7 +446,7 @@ figure21_make_roc <- function(sex) {
     data.frame(gender = sex, model = model, threshold = r$thresholds,
                FPR = 1 - r$specificities, sensitivity = r$sensitivities)
   }))
-  # 按原图顺序画蓝、橙、红；重叠时 Combined 红线最后绘制。
+ 
   coordinates$model <- factor(coordinates$model, levels = models)
   colors <- c(ESR2 = "#4575B4", Microenv = "#FDAE61", Combined = "#D73027")
   legend_labels <- setNames(sprintf("%s (AUC = %.2f)", models, auc$AUC), models)
@@ -519,7 +479,6 @@ figure21_auc <- bind_rows(lapply(figure21_roc, `[[`, "auc"))
 figure21_scores <- bind_rows(lapply(figure21_roc, `[[`, "scores"))
 figure21_coordinates <- bind_rows(lapply(figure21_roc, `[[`, "coordinates"))
 
-# 参考图的 AUC 仅用于审计差异，不参与评分、ROC 或图例的生成。
 figure21_reference_auc <- data.frame(
   gender = rep(c("Female", "Male"), each = 3),
   model = rep(c("ESR2", "Microenv", "Combined"), 2),
@@ -533,7 +492,6 @@ if (any(!figure21_auc_check$matches_reference_2dp)) {
 }
 
 
-# 09. 三行排版：字母独立留白、A/B 共享色条、底部坐标区对齐 --------------------
 figure21_tag <- function(p, letter) {
   p + labs(tag = letter) +
     theme(plot.tag = element_text(size = 16, face = 'bold', colour = '#151515'),
@@ -543,7 +501,7 @@ figure21_AB <- (
   figure21_tag(p2A, 'A') + figure21_tag(p2B_HD, 'B') + p2B_MM +
     plot_layout(ncol = 3, widths = c(1, 1, 1), guides = 'collect')
 ) & theme(legend.position = 'bottom')
-# 只包裹整行/区块，避免跨行热图长标签把其他面板的左边距挤大。
+
 figure21_top <- wrap_elements(full = patchworkGrob(figure21_AB)) +
   wrap_elements(full = ggplotGrob(figure21_tag(p2C, 'C'))) +
   plot_layout(widths = c(1.1, 1))
@@ -558,7 +516,7 @@ p2_all <- wrap_elements(full = patchworkGrob(figure21_top)) /
   plot_layout(heights = c(3.9, 5.9, 4.0)) +
   plot_annotation(theme = theme(plot.margin = margin(8, 8, 8, 8)))
 
-# 10. 统一导出：独立面板、组合图、统计结果、数值源数据和运行设置 ---------------
+
 dir.create(figure21_cfg$out_dir, recursive = TRUE, showWarnings = FALSE)
 if (!dir.exists(figure21_cfg$out_dir)) stop('Cannot create output directory.')
 figure21_panels <- list(A = p2A, B = p2B, C = p2C, D = p2D, E = p2E,
