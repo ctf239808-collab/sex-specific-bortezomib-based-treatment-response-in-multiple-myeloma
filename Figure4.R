@@ -1,4 +1,4 @@
-# Figure 4
+NC# Figure 4
 # ======================== 1. Parameters ========================
 # Dataset audit 2026-10-14: identical cells and ESR2 counts, but the 2026-05-16 UMAP
 # in MM18.MM.anno matches the historical H-J; the earlier 2026-04-21 UMAP does not.
@@ -6,7 +6,7 @@ figure4_analysis_file <- "/Users/tf/e/ndmm/HM38/scRNA_harmony_MM18.MM.anno.rds"
 figure4_cyto_anno_file <- "/Users/tf/e/ndmm/HM38/CytoTRACE/CytoTRACE_plot_table_anno3.txt"
 figure4_cyto_response_file <- "/Users/tf/e/ndmm/HM38/CytoTRACE/CytoTRACE_plot_table_group.a.txt"
 figure4_cyto_gender_file <- "/Users/tf/e/ndmm/HM38/CytoTRACE_plot_table_gender.txt"
-figure4_output_dir <- "/Users/tf/e/ndmm/ESR2/submit/Communications Biology/Figure4_code/outputs_manual"
+figure4_output_dir <- "/Users/tf/e/ndmm/ESR2/submit/NC/Figure4_code/outputs_manual"
 figure4_formats <- c("pdf", "png")  # Optional: "svg", "tiff".
 figure4_width_mm <- 183
 figure4_height_mm <- 274
@@ -25,7 +25,7 @@ figure4_root_positions <- data.frame(
   reference_label = c("1", "2", "3"),
   UMAP_1 = c(5.75, 0.70, 0.95), UMAP_2 = c(-6.95, -5.45, 9.75))
 # Reuse an already learned graph only after validating its inputs and settings.
-figure4_graph_cache_file <- "/Users/tf/e/ndmm/ESR2/submit/Communications Biology/Figure4_code/outputs_auto_corrected/cache/Figure4_trajectory.rds"
+figure4_graph_cache_file <- "/Users/tf/e/ndmm/ESR2/submit/NC/Figure4_code/outputs_auto_corrected/cache/Figure4_trajectory.rds"
 figure4_cache_file <- file.path(figure4_output_dir, "cache", "Figure4_trajectory.rds")
 figure4_rebuild_trajectory <- FALSE
 
