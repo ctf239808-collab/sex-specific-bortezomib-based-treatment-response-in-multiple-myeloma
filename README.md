@@ -8,12 +8,12 @@ The manuscript reports sex-dependent ESR2 expression, communication networks and
 
 Scripts
 
-Figure1.R	 Cell annotation, marker expression, cell composition and sample-level PCA
-Figure2.R	 ESR2 expression, response-group comparisons and sex-stratified ROC curves
-Figure3.R	 Malignant plasma-cell subclusters and ESR2-positive cell proportions
-Figure4.R	 Saved CytoTRACE scores, Monocle 3 trajectories and ESR2 along pseudotime
-Figure5.R	 Sex- and response-stratified CellChat communication networks
-Figure6.R	 Saved hdWGCNA modules, TOM networks, KEGG enrichment, GSVA and GSEA
-Figure7.R	 Panels A–D: workflow, OR-labelled cell proportions and CTRP drug-response correlations
+Figure1.R	 Cell annotation, marker expression, cell composition and sample-level PCA.
+Figure2.R	 ESR2 expression, response-group comparisons and sex-stratified ROC curves.
+Figure3.R	 Malignant plasma-cell subclusters and ESR2-positive cell proportions.
+Figure4.R	 Saved CytoTRACE scores, Monocle 3 trajectories and ESR2 along pseudotime.
+Figure5.R	 Sex- and response-stratified CellChat communication networks.
+Figure6.R	 Saved hdWGCNA modules, TOM networks, KEGG enrichment, GSVA and GSEA.
+Figure7.R	 Panels A–D: workflow, OR-labelled cell proportions and CTRP drug-response correlations.
 
-#R version （R 4.4.3）
+R version: R 4.4.3
