@@ -5,7 +5,7 @@
 figure3_analysis_file <- "/Users/tf/e/ndmm/HM38/scRNA_harmony_MM18_MM.dim50res0.5.anno.rds"
 # A-C may use a separate historical object with the original coordinates; NULL uses the D-F object.
 figure3_abc_file <- "/Users/tf/e/ndmm/HM38/scRNA_harmony_MM18.MM.anno.rds"
-figure3_output_dir <- "/Users/tf/e/ndmm/ESR2/submit/Communications Biology/Figure3_code/outputs"
+figure3_output_dir <- "/Users/tf/e/ndmm/ESR2/submit/NC/Figure3_code/outputs"
 figure3_formats <- c("pdf", "png", "svg")  # Add "tiff" if needed; all formats use built-in Cairo devices.
 figure3_width_mm <- 183
 figure3_height_mm <- 174
