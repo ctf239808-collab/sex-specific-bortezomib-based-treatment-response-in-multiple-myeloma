@@ -15,3 +15,5 @@ Figure4.R	 Saved CytoTRACE scores, Monocle 3 trajectories and ESR2 along pseudot
 Figure5.R	 Sex- and response-stratified CellChat communication networks
 Figure6.R	 Saved hdWGCNA modules, TOM networks, KEGG enrichment, GSVA and GSEA
 Figure7.R	 Panels A–D: workflow, OR-labelled cell proportions and CTRP drug-response correlations
+
+#R version （R 4.4.3）
