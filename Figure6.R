@@ -7,8 +7,8 @@ figure6_config <- list(
   male_umap_file = "/Users/tf/e/ndmm/HM38/Male.MM.hdWGCNA/Male.MM.umap_df.csv",
   female_tom_file = "/Users/tf/e/ndmm/HM38/FMM.hdWGCNA/female.MM_TOM.rda",
   male_tom_file = "/Users/tf/e/ndmm/HM38/TOM/male.MM_TOM.rda",
-  output_dir = "/Users/tf/e/ndmm/ESR2/submit/Communications Biology/Figure6_code/outputs",
-  pathway_cache_dir = "/Users/tf/e/ndmm/ESR2/submit/Communications Biology/Figure6_code/cache",
+  output_dir = "/Users/tf/e/ndmm/ESR2/submit/NC/Figure6_code/outputs",
+  pathway_cache_dir = "/Users/tf/e/ndmm/ESR2/submit/NC/Figure6_code/cache",
   # Optional explicit local database tables; NULL uses a cache or the database API.
   # MSigDB: data.frame with gs_name, gene_symbol and ncbi_gene/entrez_gene.
   # KEGG: see f6_read_live_kegg() for the serialized download_KEGG cache schema.
