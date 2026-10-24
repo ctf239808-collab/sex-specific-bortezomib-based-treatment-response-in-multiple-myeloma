@@ -7,7 +7,7 @@ figure7_ctrp_dir <- file.path(figure7_project_root,
 figure7_b_reference_file <- file.path(figure7_ctrp_dir,
                                       "Figures1_8/Figure7B_pairwise_pvalues.csv")
 figure7_output_dir <- file.path(figure7_project_root,
-                                "ESR2/submit/Communications Biology/Figure7_code/outputs")
+                                "ESR2/submit/NC/Figure7_code/outputs")
 figure7_formats <- c("pdf", "png")  # Optional: "svg", "tiff".
 figure7_width_mm <- 183
 figure7_height_mm <- 174
