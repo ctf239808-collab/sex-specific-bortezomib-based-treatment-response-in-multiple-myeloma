@@ -301,7 +301,7 @@ suppressPackageStartupMessages({
 figure1e_input <- "/Users/tf/e/ndmm/HM38/scRNA_harmony.HM38.annopre.rds"
 figure1e_annotation <- "/Users/tf/e/ndmm/HM38/annoMM.txt"
 figure1e_out <- paste0(
-  "/Users/tf/e/ndmm/ESR2/submit/Communications Biology/",
+  "/Users/tf/e/ndmm/ESR2/submit/NC/",
   "Figure1_code/outputs"
 )
 
