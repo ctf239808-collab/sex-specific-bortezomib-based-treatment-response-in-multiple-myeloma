@@ -1,9 +1,42 @@
+# =============================================================================
+# Figure2.R
+# Run with the local R installation that has the required dependencies:
+# /Library/Frameworks/R.framework/Resources/bin/Rscript '/Users/tf/e/ndmm/ESR2/submit/NC/Figure2.R'
+# Alternatively, source() this file in RStudio; inspect p2A ... p2I and p2_all
+# after execution.
+#
+# Optional settings to apply before source():
+# options(figure21.input = '/absolute/path/scRNA_harmony_HM38.anno.rds',
+#         figure21.output = '/absolute/path/output', figure21.dpi = 300,
+#         figure21.formats = c('pdf', 'png'))
+# Layout options: figure21.width=13.2, figure21.height=13.8, figure21.font_size=11.5.
+# The combined figure uses three rows, a shared A/B color bar, dedicated margins
+# for panel labels, and aligned plotting areas in the bottom row.
+#
+# Data and analysis definitions:
+# - All expression values come from RNA/data (log-normalized); retain ESR2 == 0 cells.
+# - D: Z-scores of observed sex/disease group means within each cell type.
+# - E/F/G: unpaired, two-sided, cell-level Welch t-tests without assuming equal variances.
+# - H/I: manually defined patient-level scores; OR=1, SOR=0; standardize within sex;
+#   ROC direction='auto'. mono_n is a cell count. CD8_cyto is the patient mean
+#   across CD8 T cells after four-gene AddModuleScore calculation on the full object.
+# - E/F/G reproduce exploratory cell-level comparisons, not tests using independent
+#   patients as biological replicates.
+# - H/I are exploratory ROC analyses in the same cohort, not LASSO, cross-validation,
+#   or independent validation results.
+# Data, P values, and AUCs are not altered to match the reference figure.
+# Reference values and symbols are used only in the exported comparison tables.
+# Local verification: all six H/I AUCs match the reference to two decimal places.
+# E uses Welch t-tests as requested; stars reflect calculated P values, with
+# comparisons against the reference retained.
+# =============================================================================
 
+# 01. Settings, dependencies, and shared functions ------------------------------
 figure21_cfg <- list(
   input = getOption('figure21.input',
                     '/Users/tf/e/ndmm/HM38/scRNA_harmony_HM38.anno.rds'),
   out_dir = getOption('figure21.output', paste0(
-    '/Users/tf/e/ndmm/ESR2/submit/Communications Biology/', 'Figure2_output')),
+    '/Users/tf/e/ndmm/ESR2/submit/NC/', 'Figure2_output')),
   formats = getOption('figure21.formats', c('pdf', 'png')),
   dpi = getOption('figure21.dpi', 300),
   figure_width = getOption('figure21.width', 13.2),
@@ -89,7 +122,7 @@ figure21_save <- function(plot, name, width, height) {
   }
 }
 
-
+# 02. Load the Seurat object once; align expression data and cell order ----------
 if (!file.exists(figure21_cfg$input)) stop('Input file not found: ', figure21_cfg$input)
 message('Reading Seurat object: ', figure21_cfg$input)
 scRNA_harmony <- readRDS(figure21_cfg$input)
@@ -149,7 +182,9 @@ figure21_xlim <- range(figure21_umap[, 1]) + c(-1, 1)
 figure21_ylim <- range(figure21_umap[, 2]) + c(-1, 1)
 rm(figure21_rna, figure21_meta)
 
+# 03. A: ESR2 UMAP for all cells; B: HD/MM with shared axes and color scale -------
 figure21_feature <- function(cells = NULL, title = 'ESR2') {
+  # Replace the default FeaturePlot color scale with the reference five-color scale.
   p <- Seurat::FeaturePlot(
     scRNA_harmony, features = figure21_cfg$gene, cells = cells,
     reduction = 'umap', slot = 'data', pt.size = 0.35, order = TRUE,
@@ -172,6 +207,7 @@ p2B_MM <- figure21_feature(figure21_cells$cell[figure21_cells$group == 'MM'], 'M
 p2B <- (p2B_HD + p2B_MM + plot_layout(ncol = 2, guides = 'collect')) &
   theme(legend.position = 'bottom')
 
+# 04. C: ESR2 distributions by cell type, split by HD/MM -------------------------
 scRNA_harmony$anno <- factor(scRNA_harmony$anno, levels = figure21_celltypes)
 scRNA_harmony$group <- factor(scRNA_harmony$group, levels = figure21_groups)
 figure21_vln_args <- list(
@@ -192,6 +228,7 @@ p2C <- do.call(Seurat::VlnPlot, figure21_vln_args)[[1]] +
         legend.box = 'horizontal', legend.margin = margin(5, 0, 0, 0))
 rm(figure21_vln_args)
 
+# 05. D: Expression Z-score heatmap with ESR2 detection-rate dots ----------------
 figure21_conditions <- c('Female | HD', 'Male | HD', 'Female | MM', 'Male | MM')
 figure21_D_observed <- figure21_cells %>%
   group_by(anno, gender, group) %>%
@@ -204,8 +241,9 @@ figure21_D_data <- tidyr::expand_grid(anno = figure21_celltypes,
   left_join(figure21_D_observed, by = c('anno', 'condition')) %>%
   mutate(anno = factor(anno, levels = figure21_celltypes),
          condition = factor(condition, levels = figure21_conditions))
-                    
 p2D <- ggplot(figure21_D_data, aes(condition, anno)) +
+  # Leave unobserved combinations blank; show observed rows with no between-group
+  # variation in gray.
   geom_tile(data = filter(figure21_D_data, !is.na(n_cells)), aes(fill = mean_expr_z),
             colour = 'grey85', linewidth = 0.3) +
   geom_point(data = filter(figure21_D_data, !is.na(n_cells)), aes(size = detect_rate),
@@ -236,7 +274,7 @@ p2D <- ggplot(figure21_D_data, aes(condition, anno)) +
         legend.box.just = 'left', legend.justification = 'left',
         legend.key.width = grid::unit(10, 'pt'))
 
-                    
+# 06. E: Female vs. male comparisons for four selected cell types within HD/MM ---
 figure21_key_cells <- c('CD4+ T cells', 'CD8+ T cells', 'Malignant plasma cells',
                         'NK cells')
 figure21_E_data <- figure21_cells %>% filter(anno %in% figure21_key_cells) %>%
@@ -294,7 +332,7 @@ p2E <- ggplot(figure21_E_data, aes(gender, ESR2, fill = gender)) +
         axis.text.x = element_text(size = figure21_cfg$font_size - 2),
         panel.spacing.x = grid::unit(5, 'pt'), panel.spacing.y = grid::unit(10, 'pt'))
 
-
+# 07. F/G: OR/SOR in MM malignant plasma cells, overall and stratified by sex ----
 figure21_mpc <- figure21_cells %>%
   filter(group == 'MM', anno == 'Malignant plasma cells') %>%
   mutate(group.a = factor(group.a, levels = c('OR', 'SOR')),
@@ -342,7 +380,7 @@ figure21_violin <- function(d, stats, facet = FALSE) {
   if (facet) {
     p <- p + facet_wrap(~gender, nrow = 1, drop = FALSE)
   } else {
-   
+    # Use a facet strip for the single panel to align the F/G/H/I titles.
     p <- p + facet_wrap(~'All MM', nrow = 1)
   }
   p
@@ -353,26 +391,29 @@ figure21_patients <- figure21_mpc %>%
   group_by(orig.ident, gender, group.a) %>%
   summarise(ESR2_mean = mean(ESR2), n_MPC = n(), .groups = 'drop')
 
-
-if (anyDuplicated(figure21_patients$orig.ident)) stop("ROC 患者编号重复。")
+# 08. H/I: Exploratory patient-level ROC analyses for three scores; OR=1, SOR=0.
+# -----------------------------------------------------------------------------
+if (anyDuplicated(figure21_patients$orig.ident)) stop("Duplicate patient IDs in ROC data.")
 if (any(!as.character(figure21_patients$gender) %in% c("Female", "Male")) ||
     any(!as.character(figure21_patients$group.a) %in% c("OR", "SOR"))) {
-  stop("ROC 患者性别或 OR/SOR 标签无效。")
+  stop("Invalid patient sex or OR/SOR labels in ROC data.")
 }
 if (!figure21_cfg$roc_direction %in% c("auto", "<", ">")) {
-  stop("roc_direction 必须是 auto、< 或 >。")
+  stop("roc_direction must be auto, <, or >.")
 }
 figure21_missing_genes <- setdiff(
   figure21_cfg$cyto_genes, rownames(scRNA_harmony[[figure21_cfg$assay]])
 )
 if (length(figure21_missing_genes)) {
-  stop("CD8 模块缺少基因：", paste(figure21_missing_genes, collapse = ", "))
+  stop("Missing genes for the CD8 module: ", paste(figure21_missing_genes, collapse = ", "))
 }
-if (!any(figure21_cells$anno == "CD8+ T cells")) stop("未找到 CD8+ T cells。")
+if (!any(figure21_cells$anno == "CD8+ T cells")) stop("No CD8+ T cells found.")
 figure21_mono <- figure21_cells %>%
   filter(anno %in% figure21_cfg$mono_types) %>%
   count(orig.ident, name = "mono_n")
 
+# Define the gene pool, expression bins, and sampled control genes using all cells;
+# subset CD8 T cells only after module scoring.
 figure21_scored <- Seurat::AddModuleScore(
   object = scRNA_harmony, features = list(figure21_cfg$cyto_genes),
   pool = rownames(scRNA_harmony[[figure21_cfg$assay]]),
@@ -382,29 +423,31 @@ figure21_scored <- Seurat::AddModuleScore(
 )
 figure21_scored_meta <- figure21_scored[[]]
 if (!all(figure21_cells$cell %in% rownames(figure21_scored_meta))) {
-  stop("模块评分与细胞条形码不匹配。")
+  stop("Module scores do not match the cell barcodes.")
 }
 figure21_cd8_cells <- figure21_cells %>% filter(anno == "CD8+ T cells")
 figure21_cd8_cells$module_score <- figure21_scored_meta[
   figure21_cd8_cells$cell, "Figure2_Cytotoxicity1"
 ]
 if (any(!is.finite(figure21_cd8_cells$module_score))) {
-  stop("CD8 模块评分包含非有限值。")
+  stop("CD8 module scores contain non-finite values.")
 }
 figure21_cd8 <- figure21_cd8_cells %>%
   group_by(orig.ident, gender, group.a) %>%
   summarise(CD8_cyto = mean(module_score), n_CD8 = n(), .groups = "drop")
 rm(figure21_scored, figure21_scored_meta, figure21_cd8_cells)
 
+# Retain the original missing-data exclusions: do not impute zeros for patients
+# with no captured cells of the relevant type.
 figure21_roc_input <- figure21_patients %>%
   mutate(gender = as.character(gender), group.a = as.character(group.a)) %>%
   left_join(figure21_mono, by = "orig.ident") %>%
   left_join(figure21_cd8, by = c("orig.ident", "gender", "group.a")) %>%
   mutate(response = as.integer(group.a == "OR"))
-if (anyDuplicated(figure21_roc_input$orig.ident)) stop("ROC 合并后出现重复患者。")
+if (anyDuplicated(figure21_roc_input$orig.ident)) stop("Duplicate patients after merging ROC inputs.")
 figure21_predictors <- c("ESR2_mean", "mono_n", "CD8_cyto")
 if (!all(vapply(figure21_roc_input[figure21_predictors], is.numeric, logical(1)))) {
-  stop("ROC 三个输入指标必须为数值。")
+  stop("All three ROC input variables must be numeric.")
 }
 figure21_roc_input$included <- complete.cases(
   figure21_roc_input[c("orig.ident", "gender", "response", figure21_predictors)]
@@ -414,19 +457,19 @@ figure21_roc_input$exclusion_reason <- apply(
     paste(figure21_predictors[!is.finite(x)], collapse = "; ")
   }
 )
-message("ROC 纳入患者：", sum(figure21_roc_input$included),
-        "；缺失或非有限指标排除：", sum(!figure21_roc_input$included))
+message("Patients included in ROC analysis: ", sum(figure21_roc_input$included),
+        "; excluded for missing or non-finite values: ", sum(!figure21_roc_input$included))
 
 figure21_z <- function(x, label) {
   s <- stats::sd(x)
   if (length(x) < 2L || any(!is.finite(x)) || !is.finite(s) || s == 0) {
-    stop("无法计算 ", label, " 的性别内 Z-score。")
+    stop("Cannot calculate within-sex Z-scores for ", label, ".")
   }
   as.numeric(scale(x))
 }
 figure21_make_roc <- function(sex) {
   d <- figure21_roc_input %>% filter(included, gender == sex)
-  if (!all(c(0L, 1L) %in% d$response)) stop(sex, " 缺少 OR 或 SOR 患者。")
+  if (!all(c(0L, 1L) %in% d$response)) stop(sex, " group lacks OR or SOR patients.")
   d$ESR2 <- d$ESR2_mean
   d$Microenv <- figure21_z(d$mono_n, "mono_n") - figure21_z(d$CD8_cyto, "CD8_cyto")
   d$Combined <- figure21_z(d$ESR2_mean, "ESR2_mean") + d$Microenv
@@ -446,7 +489,8 @@ figure21_make_roc <- function(sex) {
     data.frame(gender = sex, model = model, threshold = r$thresholds,
                FPR = 1 - r$specificities, sensitivity = r$sensitivities)
   }))
- 
+  # Follow the reference order: blue, orange, then red; draw the red Combined
+  # curve last when curves overlap.
   coordinates$model <- factor(coordinates$model, levels = models)
   colors <- c(ESR2 = "#4575B4", Microenv = "#FDAE61", Combined = "#D73027")
   legend_labels <- setNames(sprintf("%s (AUC = %.2f)", models, auc$AUC), models)
@@ -479,6 +523,8 @@ figure21_auc <- bind_rows(lapply(figure21_roc, `[[`, "auc"))
 figure21_scores <- bind_rows(lapply(figure21_roc, `[[`, "scores"))
 figure21_coordinates <- bind_rows(lapply(figure21_roc, `[[`, "coordinates"))
 
+# Reference AUCs are used only to check discrepancies, not to generate scores,
+# ROC curves, or legend labels.
 figure21_reference_auc <- data.frame(
   gender = rep(c("Female", "Male"), each = 3),
   model = rep(c("ESR2", "Microenv", "Combined"), 2),
@@ -488,10 +534,11 @@ figure21_auc_check <- figure21_auc %>%
   left_join(figure21_reference_auc, by = c("gender", "model")) %>%
   mutate(matches_reference_2dp = sprintf("%.2f", AUC) == sprintf("%.2f", reference_AUC))
 if (any(!figure21_auc_check$matches_reference_2dp)) {
-  warning("部分 ROC AUC 与参考图不同；已保留真实重算结果，请查看 AUC 审计表。", call. = FALSE)
+  warning("Some ROC AUCs differ from the reference figure; calculated results are retained. See the AUC comparison table.", call. = FALSE)
 }
 
 
+# 09. Three-row layout: panel-label margins, shared A/B color bar, aligned bottom panels
 figure21_tag <- function(p, letter) {
   p + labs(tag = letter) +
     theme(plot.tag = element_text(size = 16, face = 'bold', colour = '#151515'),
@@ -501,7 +548,8 @@ figure21_AB <- (
   figure21_tag(p2A, 'A') + figure21_tag(p2B_HD, 'B') + p2B_MM +
     plot_layout(ncol = 3, widths = c(1, 1, 1), guides = 'collect')
 ) & theme(legend.position = 'bottom')
-
+# Wrap complete rows or blocks so long heatmap labels do not widen the left
+# margins of panels in other rows.
 figure21_top <- wrap_elements(full = patchworkGrob(figure21_AB)) +
   wrap_elements(full = ggplotGrob(figure21_tag(p2C, 'C'))) +
   plot_layout(widths = c(1.1, 1))
@@ -516,7 +564,7 @@ p2_all <- wrap_elements(full = patchworkGrob(figure21_top)) /
   plot_layout(heights = c(3.9, 5.9, 4.0)) +
   plot_annotation(theme = theme(plot.margin = margin(8, 8, 8, 8)))
 
-
+# 10. Export individual panels, combined figure, statistics, source data, and settings
 dir.create(figure21_cfg$out_dir, recursive = TRUE, showWarnings = FALSE)
 if (!dir.exists(figure21_cfg$out_dir)) stop('Cannot create output directory.')
 figure21_panels <- list(A = p2A, B = p2B, C = p2C, D = p2D, E = p2E,
